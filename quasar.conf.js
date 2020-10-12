@@ -3,6 +3,7 @@
  * @see https://quasar.dev/quasar-cli/quasar-conf-js
  */
 
+const path = require('path');
 const { configure } = require('quasar/wrappers');
 
 module.exports = configure((ctx) => ({
@@ -77,6 +78,13 @@ module.exports = configure((ctx) => ({
           exclude: /node_modules/,
         });
       }
+
+      cfg.resolve.alias = {
+        ...cfg.resolve.alias,
+        routes: path.resolve(__dirname, './src/routes'),
+        models: path.resolve(__dirname, './src/models'),
+        helpers: path.resolve(__dirname, './src/helpers'),
+      };
     },
   },
 

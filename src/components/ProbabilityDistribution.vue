@@ -75,101 +75,33 @@
 
   import _ from 'lodash-es';
 
-  const es: Record<string, string> = {
-    uniform: 'uniforme',
-    normal: 'normal',
-    exponential: 'exponencial',
+  import { ProbabilityDistribution } from 'models/ProbabilityDistribution';
 
-    a: 'α',
-    b: 'β',
-    mean: 'μ',
-    std: 'σ',
-    rate: 'λ',
-  };
+  import { es } from 'helpers/locale';
+  import { required, gt } from 'helpers/validation';
 
-  const hasValue = (v: unknown) => (!_.isNil(v) && v !== '');
-
-  const cv = {
-    required: (msg = 'El valor es requerido') => (
-      (v: unknown) => hasValue(v) || msg
-    ),
-    number: (msg = 'El valor debe ser un número') => (
-      (v: unknown) => !hasValue(v) || _.isNumber(v) || msg
-    ),
-    integer: (msg = 'El valor debe ser un número entero') => (
-      (v: unknown) => !hasValue(v) || _.isInteger(v) || msg
-    ),
-    gt: (value: number, msg = 'El valor debe ser mayor a :value') => (
-      (v: unknown) => !hasValue(v) || !_.isNumber(v) || v > value || msg.replace(/:value/g, value.toString())
-    ),
-    gte: (value: number, msg = 'El valor debe ser mayor o igual a :value') => (
-      (v: unknown) => !hasValue(v) || !_.isNumber(v) || v >= value || msg.replace(/:value/g, value.toString())
-    ),
-    lt: (value: number, msg = 'El valor debe ser menor a :value') => (
-      (v: unknown) => !hasValue(v) || !_.isNumber(v) || v < value || msg.replace(/:value/g, value.toString())
-    ),
-    lte: (value: number, msg = 'El valor debe ser menor o igual a :value') => (
-      (v: unknown) => !hasValue(v) || !_.isNumber(v) || v <= value || msg.replace(/:value/g, value.toString())
-    ),
-  };
-
-  export class ProbabilityDistribution {
-    public readonly type: string;
-    public parameters: Record<string, number>;
-    public readonly validators: Record<string, Array<(value: number) => true | string>>;
-
-    constructor(
-      type: string,
-      parameters: Record<string, number> = {},
-      validators: Record<string, Array<(value: number) => true | string>> = {},
-    ) {
-      this.type = type;
-      this.parameters = _.cloneDeep(parameters);
-      this.validators = validators;
-    }
-
-    getReadableParameters(): string {
-      const stringParameters = _.map(
-        this.parameters,
-        (value, parameter) => `${es[parameter]} = ${value}`,
-      );
-
-      return stringParameters.join('  ~  ');
-    }
-
-    clone() {
-      return new ProbabilityDistribution(this.type, this.parameters, this.validators);
-    }
-  }
-
-  export const defaultProbabilityDistributions: ProbabilityDistribution[] = [
-    new ProbabilityDistribution('uniform', {
+  // @todo make known distributions configurable
+  export const knownDistributions: Record<string, ProbabilityDistribution> = {
+    uniform: new ProbabilityDistribution('uniform', {
       a: 0,
       b: 1,
     }, {
-      a: [cv.required()],
-      b: [cv.required()],
+      a: [required()],
+      b: [required()],
     }),
-    new ProbabilityDistribution('normal', {
+    normal: new ProbabilityDistribution('normal', {
       mean: 0,
       std: 1,
     }, {
-      mean: [cv.required()],
-      std: [cv.required(), cv.gt(0)],
+      mean: [required()],
+      std: [required(), gt(0)],
     }),
-    new ProbabilityDistribution('exponential', {
+    exponential: new ProbabilityDistribution('exponential', {
       rate: 1,
     }, {
-      rate: [cv.required(), cv.gt(0)],
+      rate: [required(), gt(0)],
     }),
-  ];
-
-  const types = defaultProbabilityDistributions.map(({
-    type,
-  }) => ({
-    label: _.startCase(es[type]),
-    value: type,
-  }));
+  };
 
   function useProbabilityDistribution(
     props: { value: ProbabilityDistribution },
@@ -181,15 +113,17 @@
       type: computed({
         get: () => props.value.type,
         set: (type) => {
-          const distribution = _.find(
-            defaultProbabilityDistributions, ['type', type],
-          ) as ProbabilityDistribution;
-
+          const distribution = knownDistributions[type];
           emit('input', distribution.clone());
-          state.configurableDistribution = distribution.clone();
         },
       }),
-      types,
+      types: _.map(knownDistributions, (
+        distribution,
+        type,
+      ) => ({
+        label: _.startCase(es[type]),
+        value: type,
+      })),
 
       showConfig: false,
 
