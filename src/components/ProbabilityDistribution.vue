@@ -8,7 +8,7 @@
       required
     >
       <template #hint>
-        <span style="white-space: pre-wrap">{{ distribution.getReadableParameters() }}</span>
+        <span style="white-space: pre-wrap">{{ value.getReadableParameters() }}</span>
       </template>
 
       <template #after>
@@ -37,7 +37,7 @@
           <q-card-section class="bg-white q-pb-sm">
             <div class="q-gutter-md">
               <q-input
-                v-for="(value, key) in configurableDistribution.parameters" :key="key"
+                v-for="(val, key) in configurableDistribution.parameters" :key="key"
                 v-model.number="configurableDistribution.parameters[key]"
                 :label="es[key]"
                 type="number" required
@@ -66,6 +66,7 @@
     computed,
     watch,
     PropType,
+    SetupContext,
   } from '@vue/composition-api';
 
   import {
@@ -141,7 +142,7 @@
     }
   }
 
-  const defaultProbabilityDistributions: ProbabilityDistribution[] = [
+  export const defaultProbabilityDistributions: ProbabilityDistribution[] = [
     new ProbabilityDistribution('uniform', {
       a: 0,
       b: 1,
@@ -170,12 +171,28 @@
     value: type,
   }));
 
-  function useProbabilityDistribution() {
+  function useProbabilityDistribution(
+    props: { value: ProbabilityDistribution },
+    { emit }: SetupContext,
+  ) {
     const state = reactive({
-      distribution: defaultProbabilityDistributions[0],
-      configurableDistribution: defaultProbabilityDistributions[0].clone(),
+      // distribution: value,
+      configurableDistribution: props.value.clone(),
 
-      type: defaultProbabilityDistributions[0].type,
+      type: computed({
+        get: () => props.value.type,
+        set: (type) => {
+          const distribution = _.find(
+            defaultProbabilityDistributions, ['type', type],
+          ) as ProbabilityDistribution;
+
+          // state.distribution = distribution.clone();
+          emit('input', distribution.clone());
+          state.configurableDistribution = distribution.clone(); // value
+
+          console.log('type:', type); // eslint-disable-line
+        },
+      }),
       types,
 
       showConfig: false,
@@ -184,25 +201,37 @@
         state.showConfig = true;
       },
       onSubmit: () => {
-        state.distribution = state.configurableDistribution;
-        state.configurableDistribution = state.distribution.clone();
+        // state.distribution = state.configurableDistribution;
+        emit('input', state.configurableDistribution/*.clone()*/);
+        state.configurableDistribution = state.configurableDistribution.clone(); // value
         state.showConfig = false;
       },
       onCancel: () => {
-        state.configurableDistribution = state.distribution.clone();
+        state.configurableDistribution = props.value.clone();
         state.showConfig = false;
       },
     });
 
-    watch(
-      () => state.type,
-      (type) => {
-        const distribution = _.find(
-          defaultProbabilityDistributions, ['type', type],
-        ) as ProbabilityDistribution;
+    //     watch(
+    //       () => state.type,
+    //       (type) => {
+    //         const distribution = _.find(
+    //           defaultProbabilityDistributions, ['type', type],
+    //         ) as ProbabilityDistribution;
+    // console.log('type:', type); // eslint-disable-line
 
-        state.distribution = distribution;
-        state.configurableDistribution = distribution.clone();
+    //         state.distribution = distribution.clone();
+    //         state.configurableDistribution = distribution.clone();
+    //       },
+    //     );
+
+    watch(
+      () => props.value,
+      () => {
+        // emit('input', distribution.clone());
+        state.configurableDistribution = props.value.clone();
+
+        console.log('distribution:', { ...props.value }); // eslint-disable-line
       },
     );
 
@@ -213,16 +242,16 @@
     name: 'ProbabilityDistribution',
     components: { Fragment },
     props: {
-      probabilityDistribution: {
+      value: {
         type: Object as PropType<ProbabilityDistribution>,
-        default: undefined,
+        required: true,
       },
     },
     // eslint-disable-next-line vue/no-setup-props-destructure
     setup(props, ctx) {
       return {
         es,
-        ...useProbabilityDistribution(),
+        ...useProbabilityDistribution(props, ctx),
       };
     },
   });
