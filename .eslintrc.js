@@ -56,6 +56,9 @@ module.exports = {
     'brace-style': ['error', 'stroustrup', {
       allowSingleLine: true,
     }],
+    'lines-between-class-members': ['error', 'always', {
+      exceptAfterSingleLine: true,
+    }],
     'max-len': ['error', {
       'code': 120,
       'comments': 135,
