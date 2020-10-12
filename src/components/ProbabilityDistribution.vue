@@ -21,7 +21,10 @@
       </template>
     </q-select>
 
-    <q-dialog v-model="showConfig" @hide="onCancel">
+    <q-dialog
+      v-model="showConfig"
+      @hide="onCancel"
+    >
       <q-card class="bg-transparent" style="width: 300px">
         <q-form autofocus novalidate @submit.prevent.stop="onSubmit">
           <q-card-section class="row items-center justify-between bg-primary text-white">
@@ -109,11 +112,6 @@
     ),
   };
 
-  // export interface IProbabilityDistribution {
-  //   type?: string
-  //   parameters: Record<string, number>
-  // }
-
   export class ProbabilityDistribution {
     public readonly type: string;
     public parameters: Record<string, number>;
@@ -172,21 +170,10 @@
     value: type,
   }));
 
-  // [{
-  //   label: _.startCase(es.uniform),
-  //   value: 'uniform',
-  // }, {
-  //   label: _.startCase(es.normal),
-  //   value: 'normal',
-  // }, {
-  //   label: _.startCase(es.exponential),
-  //   value: 'exponential',
-  // }],
-
   function useProbabilityDistribution() {
     const state = reactive({
       distribution: defaultProbabilityDistributions[0],
-      configurableDistribution: defaultProbabilityDistributions[0].clone(), // compute
+      configurableDistribution: defaultProbabilityDistributions[0].clone(),
 
       type: defaultProbabilityDistributions[0].type,
       types,
@@ -198,7 +185,7 @@
       },
       onSubmit: () => {
         state.distribution = state.configurableDistribution;
-        state.configurableDistribution = state.distribution.clone(); // compute
+        state.configurableDistribution = state.distribution.clone();
         state.showConfig = false;
       },
       onCancel: () => {
@@ -209,13 +196,13 @@
 
     watch(
       () => state.type,
-      (newType) => {
+      (type) => {
         const distribution = _.find(
-          defaultProbabilityDistributions, ['type', newType],
+          defaultProbabilityDistributions, ['type', type],
         ) as ProbabilityDistribution;
 
         state.distribution = distribution;
-        state.configurableDistribution = distribution.clone(); // compute
+        state.configurableDistribution = distribution.clone();
       },
     );
 
@@ -232,19 +219,7 @@
       },
     },
     // eslint-disable-next-line vue/no-setup-props-destructure
-    setup({ probabilityDistribution }, { emit }) {
-      // const onSubmit = () => {
-      //   emit('submit', {
-      //     distribution
-      //   } as IProbabilityDistribution);
-      // };
-
-      // const onReset = () => {
-      //   emit('reset', {
-      //     distribution
-      //   } as IProbabilityDistribution);
-      // };
-
+    setup(props, ctx) {
       return {
         es,
         ...useProbabilityDistribution(),
