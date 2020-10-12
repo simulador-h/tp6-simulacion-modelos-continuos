@@ -1,1 +1,6 @@
-// app global css in SCSS form
+/* Workaround for font-awesome oversized icons
+ * @see https://github.com/quasarframework/quasar/issues/4858
+ */
+.q-icon.fas {
+  font-size: 1rem;
+}

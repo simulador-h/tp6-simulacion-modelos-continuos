@@ -5,7 +5,7 @@
     exact clickable
   >
     <q-item-section avatar>
-      <q-icon :name="link.icon" />
+      <q-icon :name="link.icon" size="xs" />
     </q-item-section>
 
     <q-item-section>

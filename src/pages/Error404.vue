@@ -10,13 +10,10 @@
       </div>
 
       <q-btn
-        class="q-mt-xl"
-        color="white"
-        text-color="blue"
-        unelevated
+        label="Lleváme a casa"
         to="/"
-        label="Go Home"
-        no-caps
+        class="q-mt-xl" color="white" text-color="blue"
+        unelevated
       />
     </div>
   </div>

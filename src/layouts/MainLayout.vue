@@ -4,8 +4,8 @@
     <q-header class="bg-primary text-white">
       <q-toolbar>
         <q-btn
-          flat dense round
-          icon="menu"
+          flat round dense
+          icon="fas fa-bars"
           @click="drawerVisible = !drawerVisible"
         />
 
@@ -45,7 +45,7 @@
       drawerVisible: true,
       drawerLinks: [{
         name: 'Home',
-        icon: 'home',
+        icon: 'fas fa-home',
         path: '/',
       }],
     });
