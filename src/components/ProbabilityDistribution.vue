@@ -176,7 +176,6 @@
     { emit }: SetupContext,
   ) {
     const state = reactive({
-      // distribution: value,
       configurableDistribution: props.value.clone(),
 
       type: computed({
@@ -186,11 +185,8 @@
             defaultProbabilityDistributions, ['type', type],
           ) as ProbabilityDistribution;
 
-          // state.distribution = distribution.clone();
           emit('input', distribution.clone());
-          state.configurableDistribution = distribution.clone(); // value
-
-          console.log('type:', type); // eslint-disable-line
+          state.configurableDistribution = distribution.clone();
         },
       }),
       types,
@@ -201,9 +197,8 @@
         state.showConfig = true;
       },
       onSubmit: () => {
-        // state.distribution = state.configurableDistribution;
-        emit('input', state.configurableDistribution/*.clone()*/);
-        state.configurableDistribution = state.configurableDistribution.clone(); // value
+        emit('input', state.configurableDistribution);
+        state.configurableDistribution = state.configurableDistribution.clone();
         state.showConfig = false;
       },
       onCancel: () => {
@@ -212,26 +207,10 @@
       },
     });
 
-    //     watch(
-    //       () => state.type,
-    //       (type) => {
-    //         const distribution = _.find(
-    //           defaultProbabilityDistributions, ['type', type],
-    //         ) as ProbabilityDistribution;
-    // console.log('type:', type); // eslint-disable-line
-
-    //         state.distribution = distribution.clone();
-    //         state.configurableDistribution = distribution.clone();
-    //       },
-    //     );
-
     watch(
       () => props.value,
       () => {
-        // emit('input', distribution.clone());
         state.configurableDistribution = props.value.clone();
-
-        console.log('distribution:', { ...props.value }); // eslint-disable-line
       },
     );
 
@@ -247,7 +226,7 @@
         required: true,
       },
     },
-    // eslint-disable-next-line vue/no-setup-props-destructure
+
     setup(props, ctx) {
       return {
         es,
