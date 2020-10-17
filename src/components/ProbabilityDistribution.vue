@@ -3,12 +3,12 @@
     <q-select
       v-model="type" :options="types"
       emit-value map-options
-      label="Distribución"
+      :label="label"
       outlined stack-label bottom-slots
       required
     >
       <template #hint>
-        <span style="white-space: pre-wrap">{{ value.getReadableParameters() }}</span>
+        <span>{{ value.getReadableParameters() }}</span>
       </template>
 
       <template #after>
@@ -39,7 +39,7 @@
               <q-input
                 v-for="(val, key) in configurableDistribution.parameters" :key="key"
                 v-model.number="configurableDistribution.parameters[key]"
-                :label="es[key]"
+                :label="es[key] || key"
                 type="number" required
                 outlined stack-label
                 bottom-slots hide-bottom-space lazy-rules
@@ -57,6 +57,18 @@
     </q-dialog>
   </fragment>
 </template>
+
+<style lang="scss" scoped>
+  /deep/ .q-field__messages {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+
+    span {
+      white-space: pre;
+    }
+  }
+</style>
 
 <script lang="ts">
   import {
@@ -78,7 +90,7 @@
   import { ProbabilityDistribution } from 'models/ProbabilityDistribution';
 
   import { es } from 'helpers/locale';
-  import { required, gt } from 'helpers/validation';
+  import { required, gt, gte, lte } from 'helpers/validation';
 
   // @todo make known distributions configurable
   export const knownDistributions: Record<string, ProbabilityDistribution> = {
@@ -101,6 +113,22 @@
     }, {
       rate: [required(), gt(0)],
     }),
+    poisson: new ProbabilityDistribution('poisson', {
+      rate: 1,
+    }, {
+      rate: [required(), gt(0)],
+    }),
+    discrete: new ProbabilityDistribution('discrete', {
+      0: 0.6,
+      1: 0.25,
+      2: 0.1,
+      3: 0.05,
+    }, {
+      0: [required(), gte(0), lte(1)],
+      1: [required(), gte(0), lte(1)],
+      2: [required(), gte(0), lte(1)],
+      3: [required(), gte(0), lte(1)],
+    }),
   };
 
   function useProbabilityDistribution(
@@ -121,7 +149,7 @@
         distribution,
         type,
       ) => ({
-        label: _.startCase(es[type]),
+        label: _.startCase(es[type] ?? type),
         value: type,
       })),
 
@@ -158,6 +186,11 @@
       value: {
         type: Object as PropType<ProbabilityDistribution>,
         required: true,
+      },
+      label: {
+        type: String,
+        required: false,
+        default: 'Distribución',
       },
     },
 

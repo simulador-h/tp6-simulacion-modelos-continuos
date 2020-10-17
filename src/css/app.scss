@@ -5,6 +5,10 @@
   margin-left: .5ch;
 }
 
+.q-field--error .q-field__native[required] ~ .q-field__label:after {
+  color: unset;
+}
+
 // Hide number field input spinners
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button {

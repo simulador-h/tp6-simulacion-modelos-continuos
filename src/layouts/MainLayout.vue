@@ -47,6 +47,10 @@
         name: 'Home',
         icon: 'fas fa-home',
         path: '/',
+      }, {
+        name: 'Simulación Montecarlo',
+        icon: 'fas fa-running',
+        path: '/montecarlo',
       }],
     });
 

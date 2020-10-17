@@ -4,6 +4,7 @@ Simulación 2020 | TP-5 | Modelos de Simulación Dinámicos
 
 ## Install the dependencies
 ```bash
+npm install -g @quasar/cli
 npm install
 ```
 

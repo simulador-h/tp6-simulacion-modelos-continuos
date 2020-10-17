@@ -2,6 +2,7 @@ import _ from 'lodash-es';
 
 import { es } from 'helpers/locale';
 
+// @todo extend common probability distributions
 export class ProbabilityDistribution {
   public readonly type: string;
   public parameters: Record<string, number>;
@@ -20,7 +21,7 @@ export class ProbabilityDistribution {
   getReadableParameters(locale = es): string {
     const stringParameters = _.map(
       this.parameters,
-      (value, parameter) => `${locale[parameter] ?? ''} = ${value}`,
+      (value, parameter) => `${locale[parameter] ?? parameter} = ${Number(value.toFixed(3))}`,
     );
 
     return stringParameters.join('  ~  ');
