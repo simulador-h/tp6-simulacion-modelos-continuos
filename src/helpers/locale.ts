@@ -1,6 +1,6 @@
-type Dictionary = Record<string, string>;
+type TLocaleDictionary = Record<string, string>;
 
-export const es: Dictionary = {
+export const es: TLocaleDictionary = {
   uniform: 'uniforme',
   normal: 'normal',
   exponential: 'exponencial',

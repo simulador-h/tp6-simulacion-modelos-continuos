@@ -88,47 +88,21 @@
   import _ from 'lodash-es';
 
   import { ProbabilityDistribution } from 'models/ProbabilityDistribution';
+  import { UniformDistribution } from 'models/UniformDistribution';
+  import { NormalDistribution } from 'models/NormalDistribution';
+  import { ExponentialDistribution } from 'models/ExponentialDistribution';
+  import { PoissonDistribution } from 'models/PoissonDistribution';
+  import { DiscreteDistribution } from 'models/DiscreteDistribution';
 
   import { es } from 'helpers/locale';
-  import { required, gt, gte, lte } from 'helpers/validation';
 
   // @todo make known distributions configurable
-  export const knownDistributions: Record<string, ProbabilityDistribution> = {
-    uniform: new ProbabilityDistribution('uniform', {
-      a: 0,
-      b: 1,
-    }, {
-      a: [required()],
-      b: [required()],
-    }),
-    normal: new ProbabilityDistribution('normal', {
-      mean: 0,
-      std: 1,
-    }, {
-      mean: [required()],
-      std: [required(), gt(0)],
-    }),
-    exponential: new ProbabilityDistribution('exponential', {
-      rate: 1,
-    }, {
-      rate: [required(), gt(0)],
-    }),
-    poisson: new ProbabilityDistribution('poisson', {
-      rate: 1,
-    }, {
-      rate: [required(), gt(0)],
-    }),
-    discrete: new ProbabilityDistribution('discrete', {
-      0: 0.6,
-      1: 0.25,
-      2: 0.1,
-      3: 0.05,
-    }, {
-      0: [required(), gte(0), lte(1)],
-      1: [required(), gte(0), lte(1)],
-      2: [required(), gte(0), lte(1)],
-      3: [required(), gte(0), lte(1)],
-    }),
+  const knownDistributions: Record<string, ProbabilityDistribution> = {
+    uniform: new UniformDistribution(),
+    normal: new NormalDistribution(),
+    exponential: new ExponentialDistribution(),
+    poisson: new PoissonDistribution(),
+    discrete: new DiscreteDistribution(),
   };
 
   function useProbabilityDistribution(
@@ -201,36 +175,4 @@
       };
     },
   });
-
-  // var jStat = require("jstat");
-  // var _ = require("lodash");
-
-  // const distribution = jStat.exponential(.2);
-
-  // const mean = distribution.mean();
-  // const variance = distribution.variance();
-  // const std = Math.sqrt(variance);
-
-  // let lx = mean;
-  // let rx = mean;
-  // let p = distribution.pdf(mean);
-
-  // const probabilities = [{ x: mean, p }];
-
-  // while (p >= 0.001) {
-  //   lx -= std / 4;
-  //   rx += std / 4;
-  //   const lp = distribution.pdf(lx);
-  //   const rp = distribution.pdf(rx);
-
-  //   if (lp)
-  //     probabilities.push({ x: lx, p: lp });
-
-  //   if (rp)
-  //     probabilities.push({ x: rx, p: rp });
-
-  //   p = Math.max(lp, rp);
-  // }
-
-  // _.sortBy(probabilities, 'x');
 </script>
