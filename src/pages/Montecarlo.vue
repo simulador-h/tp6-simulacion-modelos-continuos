@@ -9,6 +9,7 @@
     >
       <q-tab name="parameters" label="Parámetros" />
       <q-tab name="simulation" label="Simulación" />
+      <q-tab name="results" label="Resultados" />
     </q-tabs>
 
     <q-tab-panels v-model="activeTab" animated keep-alive>
@@ -17,6 +18,9 @@
       </q-tab-panel>
       <q-tab-panel name="simulation">
         <simulation :parameters="parameters" />
+      </q-tab-panel>
+      <q-tab-panel name="results">
+        <results :results="results" />
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -39,6 +43,7 @@
 
   import Parameters, { IParameters } from 'components/Parameters.vue';
   import Simulation from 'components/Simulation.vue';
+  import Results, { IResults } from 'components/Results.vue';
 
   const defaultParameters: IParameters = {
     pedidos: {
@@ -92,12 +97,16 @@
     const state = reactive({
       activeTab: 'parameters',
       parameters: _.cloneDeep(defaultParameters),
+      results: {}, // @todo condition initial render or show empty results screen
 
       save: (parameters: IParameters) => {
         state.parameters = _.cloneDeep(parameters);
       },
       reload: () => {
         state.parameters = _.cloneDeep(defaultParameters);
+      },
+      finish: (results: IResults) => {
+        state.results = results; // @todo check reactivity
       },
     });
 
@@ -106,7 +115,7 @@
 
   export default defineComponent({
     name: 'Montecarlo',
-    components: { Parameters, Simulation },
+    components: { Parameters, Simulation, Results },
     setup() {
       return useMontecarlo();
     },
