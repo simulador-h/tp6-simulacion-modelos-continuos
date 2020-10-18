@@ -8,11 +8,15 @@
       class="text-grey"
     >
       <q-tab name="parameters" label="Parámetros" />
+      <q-tab name="simulation" label="Simulación" />
     </q-tabs>
 
     <q-tab-panels v-model="activeTab" animated keep-alive>
       <q-tab-panel name="parameters">
         <parameters :parameters="parameters" @submit="save" @reset="reload" />
+      </q-tab-panel>
+      <q-tab-panel name="simulation">
+        <simulation :parameters="parameters" />
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -34,6 +38,7 @@
   import { DiscreteDistribution } from 'models/DiscreteDistribution';
 
   import Parameters, { IParameters } from 'components/Parameters.vue';
+  import Simulation from 'components/Simulation.vue';
 
   const defaultParameters: IParameters = {
     pedidos: {
@@ -101,7 +106,7 @@
 
   export default defineComponent({
     name: 'Montecarlo',
-    components: { Parameters },
+    components: { Parameters, Simulation },
     setup() {
       return useMontecarlo();
     },

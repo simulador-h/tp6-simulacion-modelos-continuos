@@ -29,3 +29,15 @@ export const lt = (value: number, msg = 'El valor debe ser menor a :value') => (
 export const lte = (value: number, msg = 'El valor debe ser menor o igual a :value') => (
   (v: unknown) => !hasValue(v) || !_.isNumber(v) || v <= value || msg.replace(/:value/g, value.toString())
 );
+
+export const js = (msg = 'El valor debe ser una expresión JavaScript válida') => (
+  (v: unknown) => {
+    try {
+      // eslint-disable-next-line no-new-func, no-new
+      new Function('n', `return (${v});`); return true;
+    }
+    catch (e) {
+      return msg;
+    }
+  }
+);
