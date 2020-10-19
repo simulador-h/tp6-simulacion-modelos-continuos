@@ -29,7 +29,7 @@ export class PoissonDistribution extends ProbabilityDistribution {
     parameters: IPoissonParameters = defaultParameters,
     validators: IPoissonValidators = defaultValidators,
   ) {
-    const generator = jStat.poisson(parameters.rate);
+    const generator = ({ rate }: TDistributionParameters) => jStat.poisson(rate).sample();
     super('poisson', parameters, validators, generator);
   }
 }

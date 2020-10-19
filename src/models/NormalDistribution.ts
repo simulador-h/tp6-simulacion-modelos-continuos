@@ -33,7 +33,7 @@ export class NormalDistribution extends ProbabilityDistribution {
     parameters: INormalParameters = defaultParameters,
     validators: INormalValidators = defaultValidators,
   ) {
-    const generator = jStat.normal(parameters.mean, parameters.std);
+    const generator = ({ mean, std }: TDistributionParameters) => jStat.normal(mean, std).sample();
     super('normal', parameters, validators, generator);
   }
 }

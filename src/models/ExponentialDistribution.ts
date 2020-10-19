@@ -29,7 +29,7 @@ export class ExponentialDistribution extends ProbabilityDistribution {
     parameters: IExponentialParameters = defaultParameters,
     validators: IExponentialValidators = defaultValidators,
   ) {
-    const generator = jStat.exponential(parameters.rate);
+    const generator = ({ rate }: TDistributionParameters) => jStat.exponential(rate).sample();
     super('exponential', parameters, validators, generator);
   }
 }
