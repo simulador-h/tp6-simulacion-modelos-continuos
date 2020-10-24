@@ -47,7 +47,7 @@
 
   const defaultParameters: IParameters = {
     pedidos: {
-      demanda: new PoissonDistribution({ rate: 5 / 60 }),
+      demanda: new PoissonDistribution({ rate: 12 }),
       tipo: new DiscreteDistribution({
         sandwiches: 0.2,
         pizzas: 0.4,
@@ -91,13 +91,21 @@
       tiempoLimiteCobro: 25,
       tiempoLimiteEspera: 60,
     },
+    turnos: {
+      duracionTurno: 6 * 60,
+    },
   };
 
   function useMontecarlo() {
     const state = reactive({
       activeTab: 'parameters',
       parameters: _.cloneDeep(defaultParameters),
-      results: {}, // @todo condition initial render or show empty results screen
+      results: {
+        tiempoEntrePedidos: {
+          promedio: 20,
+          desviacion: 40,
+        },
+      }, // @todo condition initial render or show empty results screen
 
       save: (parameters: IParameters) => {
         state.parameters = _.cloneDeep(parameters);
