@@ -168,6 +168,7 @@
     FinSimulacion = 'Fin Simulación',
 
     InicioTurno = 'Inicio Turno',
+    FinTurnoParcial = 'Fin Turno Parcial',
     FinTurno = 'Fin Turno',
 
     LlegadaPedido = 'Llegada Pedido',
@@ -278,7 +279,7 @@
     }
 
     getNombre() {
-      return `${_.startCase(this.tipo)} (${this.id})`;
+      return `${this.cantidad} x ${_.startCase(this.tipo)} (${this.id})`;
     }
 
     iniciarPreparacion(reloj: number, tiempoPreparacion: number) {
@@ -367,6 +368,10 @@
         && cantidad === cantidadPedido
       ))
     )
+
+    groupAlmacenado = () => _.groupBy(
+      this.getAlmacenado(), 'tipo',
+    )
   }
 
   enum EstadoEmpleado {
@@ -395,6 +400,9 @@
     tiempoLibre: number;
     inicioTiempoLibre?: number;
 
+    turno: Turno;
+    tiempoExtra: number;
+
     pedidoPreparacion?: Pedido;
     inicioPreparacionPedido?: number;
     finPreparacionPedido?: number;
@@ -402,13 +410,16 @@
     pedidosEntrega?: Pedido[];
     inicioEntregaPedidos?: number;
     finEntregaPedidos?: number;
+    ingresoUltimaEntrega?: number;
 
-    constructor(id: number, tipo: TipoEmpleado) {
+    constructor(id: number, tipo: TipoEmpleado, turno: Turno) {
       super(id);
       this.tipo = tipo;
       this.estado = EstadoEmpleado.Libre;
       this.tiempoLibre = 0;
       this.inicioTiempoLibre = 0;
+      this.turno = turno;
+      this.tiempoExtra = 0;
     }
 
     getNombre() {
@@ -431,8 +442,11 @@
     finalizarPreparacion(reloj: number, tiempoPreparacion?: number, pedido?: Pedido) {
       this.pedidoPreparacion?.finalizarPreparacion(reloj);
 
-      if (tiempoPreparacion && pedido) {
+      if (typeof tiempoPreparacion === 'number' && pedido) {
         this.iniciarPreparacion(reloj, tiempoPreparacion, pedido);
+      }
+      else if (reloj > this.turno.finTurno) {
+        this.finalizarTurno(reloj);
       }
       else {
         this.estado = EstadoEmpleado.Libre;
@@ -461,6 +475,8 @@
         for (const pedido of this.pedidosEntrega) {
           pedido.finalizarEntrega(reloj);
         }
+
+        this.ingresoUltimaEntrega = _.sumBy(this.pedidosEntrega, 'ingresoVenta');
       }
 
       if (typeof tiempoEntrega === 'number' && pedidos?.length) {
@@ -472,6 +488,26 @@
         this.inicioEntregaPedidos = undefined;
         this.finEntregaPedidos = undefined;
       }
+    }
+
+    finalizarTurno(reloj: number) {
+      if (this.estado === EstadoEmpleado.Libre && this.inicioTiempoLibre !== undefined) {
+        this.tiempoLibre += reloj - this.inicioTiempoLibre;
+        this.inicioTiempoLibre = undefined;
+      }
+
+      if (reloj > this.turno.finTurno) {
+        this.tiempoExtra = reloj - this.turno.finTurno;
+      }
+
+      this.estado = EstadoEmpleado.NoDisponible;
+
+      this.pedidoPreparacion = undefined;
+      this.pedidosEntrega = undefined;
+      this.inicioPreparacionPedido = undefined;
+      this.inicioEntregaPedidos = undefined;
+      this.finPreparacionPedido = undefined;
+      this.finEntregaPedidos = undefined;
     }
   }
 
@@ -586,10 +622,10 @@
 
       pedidos: new ColleccionPedidos(),
       empleados: new ColleccionEmpleados(
-        new Empleado(1, TipoEmpleado.Cocinero),
-        new Empleado(2, TipoEmpleado.Cocinero),
-        new Empleado(3, TipoEmpleado.Cocinero),
-        new Empleado(4, TipoEmpleado.Repartidor),
+        new Empleado(1, TipoEmpleado.Cocinero, turno),
+        new Empleado(2, TipoEmpleado.Cocinero, turno),
+        new Empleado(3, TipoEmpleado.Cocinero, turno),
+        new Empleado(4, TipoEmpleado.Repartidor, turno),
       ),
     };
 
@@ -607,25 +643,57 @@
     return vector;
   }
 
-  function generarFinTurno(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
+  function generarFinTurnoParcial(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
     const {
       id, reloj, evento, emisor, ...estadoHeredado
     } = estado;
 
+    const finTurno = estado.turno?.finTurno ?? 0;
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const empleado of estado.empleados?.getCocinerosLibres() ?? []) {
+      empleado.finalizarTurno(finTurno);
+    }
+
     return {
       id: id + 1,
-      reloj,
-      evento: Evento.FinTurno,
+      reloj: finTurno,
+      evento: Evento.FinTurnoParcial,
       emisor: estadoHeredado.turno as Turno,
 
       ...estadoHeredado,
     };
   }
 
+  function generarFinTurno(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
+    const {
+      id, reloj, evento, emisor, ...estadoHeredado
+    } = estado;
+
+    const finTurno = estado.turno?.finTurno ?? 0;
+
+    const vector = {
+      id: id + 1,
+      reloj: (reloj > finTurno) ? reloj : finTurno,
+      evento: Evento.FinTurno,
+      emisor: estadoHeredado.turno as Turno,
+
+      ...estadoHeredado,
+    };
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const empleado of estado.empleados ?? []) {
+      empleado.finalizarTurno(vector.reloj);
+    }
+
+    return vector;
+  }
+
   function generarLlegadaPedido(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
     const {
       pedidos: { demanda, tipo, ...parametrosPedidos },
       entregas: { tiempoLimiteEspera, tiempoLimiteCobro },
+      envios: { tiempoEnvio, cantidadMaximaPorEnvio },
     } = parametros;
 
     const {
@@ -641,16 +709,18 @@
       ...estadoHeredado,
     };
 
-    const tiempoEntreLlegadas = _.clamp(
-      demanda.sample(), 0, Infinity,
-    );
+    const tiempoEntreLlegadas = _.clamp(demanda.sample(), 0, Infinity);
+    const proximaLlegada = vector.reloj + tiempoEntreLlegadas;
     const finTurno = estado.turno?.finTurno as number;
 
-    if (tiempoEntreLlegadas < finTurno) {
+    if (proximaLlegada < finTurno) {
       vector.llegadaPedido = {
         tiempoEntreLlegadas,
-        proximaLlegada: vector.reloj + tiempoEntreLlegadas,
+        proximaLlegada,
       };
+    }
+    else {
+      vector.llegadaPedido = undefined;
     }
 
     const idPedido = vector.pedidos?.getProximoId() || 0;
@@ -711,6 +781,20 @@
 
     if (pedidoAlmacenado) {
       pedidoAlmacenado.reutilizar(vector.reloj, pedido);
+
+      const repartidoresLibres = vector.empleados?.getRepartidoresLibres() as Empleado[];
+
+      if (repartidoresLibres.length) {
+        const repartidor = repartidoresLibres[0];
+
+        const tiempoEntrega = _.clamp(
+          tiempoEnvio.sample(), 0, Infinity,
+        );
+
+        const pedidos = estado.pedidos?.getProximosPedidosAEntregar(cantidadMaximaPorEnvio) as Pedido[];
+        repartidor.iniciarEntrega(vector.reloj, tiempoEntrega, pedidos);
+      }
+
       return vector;
     }
 
@@ -858,6 +942,14 @@
 
     empleado.finalizarEntrega(vector.reloj, tiempoEntrega, pedidos);
 
+    if (
+      !pedidos?.length
+      && reloj > (vector.turno?.finTurno ?? 0)
+      && !vector.empleados?.getOcupados()?.length
+    ) {
+      empleado.finalizarTurno(reloj);
+    }
+
     return vector;
   }
 
@@ -895,18 +987,17 @@
       return generarFinSimulacion(estado, parametros);
     }
 
-    // eslint-disable-next-line max-len
     if (!estado.turno || !estado.pedidos || !estado.empleados) {
       throw new Error('Unreachable condition');
     }
 
-    if (
-      estado.reloj >= estado.turno.finTurno
-      && estado.empleados.getLibres.length === 0
-      && estado.empleados.getOcupados.length === 0
-    ) {
-      return generarFinTurno(estado, parametros);
-    }
+    // if (
+    //   estado.reloj >= estado.turno.finTurno
+    //   && estado.empleados.getLibres.length === 0
+    //   && estado.empleados.getOcupados.length === 0
+    // ) {
+    //   return generarFinTurno(estado, parametros);
+    // }
 
     const proximaLlegadaPedido = estado.llegadaPedido?.proximaLlegada;
     const proximoFinPreparacionPedido = estado.empleados?.getProximoFinPreparacionPedido()?.finPreparacionPedido;
@@ -919,6 +1010,16 @@
       proximoFinEntregaPedido,
       proximoAbandonoPedido,
     ]);
+
+    if (tiempoProximoEvento === undefined) {
+      return generarFinTurno(estado, parametros);
+    }
+
+    const proximoFinTurno = estado.turno.finTurno;
+
+    if (tiempoProximoEvento > proximoFinTurno && estado.empleados?.getCocinerosLibres().length) {
+      return generarFinTurnoParcial(estado, parametros);
+    }
 
     if (tiempoProximoEvento === proximoAbandonoPedido) {
       return generarAbandonoPedido(estado, parametros);
@@ -989,6 +1090,12 @@
     value.toFixed(0),
   );
 
+  const n2 = (value: number) => (
+    typeof value === 'number'
+      ? Number(value.toFixed(2))
+      : value
+  );
+
   const n3 = (value: number) => Number(
     value.toFixed(3),
   );
@@ -998,7 +1105,7 @@
   );
 
   const $ = (value: number) => (
-    `$ ${value.toFixed(0)}`
+    typeof value === 'number' ? `$ ${value.toFixed(0)}` : value
   );
 
   const percent = (value: number) => `${
@@ -1009,7 +1116,7 @@
 
   function useSimulation(props: { parameters: IParameters }) {
     const state = reactive({
-      iteraciones: 1000,
+      iteraciones: 100,
       condicionMuestreo: '!(n % 50)',
 
       columnas: [
@@ -1019,7 +1126,7 @@
           field: (row: IVectorEstado) => row.reloj,
           align: 'right',
           required: true,
-          format: n3,
+          format: n2,
         },
         {
           name: 'evento',
@@ -1032,7 +1139,7 @@
           name: 'emisor',
           label: 'Emisor',
           field: (row: IVectorEstado) => row.emisor.getNombre(),
-          align: 'right',
+          align: 'left',
           required: true,
         },
         {
@@ -1051,42 +1158,183 @@
         {
           name: 'en-cola-para-preparar',
           label: 'En cola para preparar',
-          field: (row: IVectorEstado) => row.pedidos?.getEsperandoPreparacion().length,
+          field: (row: IVectorEstado) => {
+            const pedidos = row.pedidos?.getEsperandoPreparacion();
+            if (!pedidos?.length) {
+              return undefined;
+            }
+
+            return `[${
+              pedidos.map(({ id }) => id).join(', ')
+            }] (${
+              pedidos.length
+            })`;
+          },
           align: 'right',
-          required: true,
         },
         {
           name: 'en-cola-para-entrega',
           label: 'En cola para entrega',
-          field: (row: IVectorEstado) => row.pedidos?.getEsperandoEntrega().length,
+          field: (row: IVectorEstado) => {
+            const pedidos = row.pedidos?.getEsperandoEntrega();
+            if (!pedidos?.length) {
+              return undefined;
+            }
+
+            return `[${
+              pedidos.map(({ id }) => id).join(', ')
+            }] (${
+              pedidos.length
+            })`;
+          },
           align: 'right',
-          required: true,
         },
         {
           name: 'cocinero-1--estado',
           label: 'C1 | Estado',
           field: (row: IVectorEstado) => row.empleados && row.empleados[0]?.estado,
+          align: 'left',
+          required: true,
+        },
+        {
+          name: 'cocinero-1--pedido',
+          label: 'C1 | № Pedido',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[0]?.pedidoPreparacion?.id,
           align: 'right',
           required: true,
         },
         {
+          name: 'cocinero-1--pedido-tiempo-preparacion',
+          label: 'C1 | Tiempo preparación',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[0]?.pedidoPreparacion?.tiempoPreparacion,
+          align: 'right',
+          format: n2,
+        },
+        {
+          name: 'cocinero-1--fin-preparacion',
+          label: 'C1 | Fin Preparación',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[0]?.finPreparacionPedido,
+          align: 'right',
+          required: true,
+          format: n2,
+        },
+        // {
+        //   name: 'cocinero-1--tiempo-libre',
+        //   label: 'C1 | Tiempo Libre',
+        //   field: (row: IVectorEstado) => row.empleados && row.empleados[0]?.tiempoLibre,
+        //   align: 'right',
+        //   format: n2,
+        // },
+        {
           name: 'cocinero-2--estado',
           label: 'C2 | Estado',
           field: (row: IVectorEstado) => row.empleados && row.empleados[1]?.estado,
+          align: 'left',
+          required: true,
+        },
+        {
+          name: 'cocinero-2--pedido',
+          label: 'C2 | № Pedido',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[1]?.pedidoPreparacion?.id,
           align: 'right',
           required: true,
+        },
+        {
+          name: 'cocinero-2--pedido-tiempo-preparacion',
+          label: 'C2 | Tiempo preparación',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[1]?.pedidoPreparacion?.tiempoPreparacion,
+          align: 'right',
+          format: n2,
+        },
+        {
+          name: 'cocinero-2--fin-preparacion',
+          label: 'C2 | Fin Preparación',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[1]?.finPreparacionPedido,
+          align: 'right',
+          required: true,
+          format: n2,
         },
         {
           name: 'cocinero-3--estado',
           label: 'C3 | Estado',
           field: (row: IVectorEstado) => row.empleados && row.empleados[2]?.estado,
+          align: 'left',
+          required: true,
+        },
+        {
+          name: 'cocinero-3--pedido',
+          label: 'C3 | № Pedido',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[2]?.pedidoPreparacion?.id,
           align: 'right',
           required: true,
+        },
+        {
+          name: 'cocinero-3--pedido-tiempo-preparacion',
+          label: 'C3 | Tiempo preparación',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[2]?.pedidoPreparacion?.tiempoPreparacion,
+          align: 'right',
+          format: n2,
+        },
+        {
+          name: 'cocinero-3--fin-preparacion',
+          label: 'C3 | Fin Preparación',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[2]?.finPreparacionPedido,
+          align: 'right',
+          required: true,
+          format: n2,
         },
         {
           name: 'repartidor--estado',
           label: 'R | Estado',
           field: (row: IVectorEstado) => row.empleados && row.empleados[3]?.estado,
+          align: 'left',
+          required: true,
+        },
+        {
+          name: 'repartidor--pedidos',
+          label: 'R | № Pedidos',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[3]?.pedidosEntrega?.map(({ id }) => id).join(', '),
+          align: 'left',
+          required: true,
+        },
+        // {
+        //   name: 'repartidor--pedido-tiempo-entrega',
+        //   label: 'R | Tiempo entrega',
+        //   field: (row: IVectorEstado) => {
+        //     if (row.emisor instanceof Empleado && row.evento === Evento.FinPreparacionPedido && row.evento === Evento.FinEntregaPedido) {
+        //     }
+        //   },
+        //   align: 'right',
+        //   format: n2,
+        // },
+        {
+          name: 'repartidor--fin-entrega',
+          label: 'R | Fin entrega',
+          field: (row: IVectorEstado) => row.empleados && row.empleados[3]?.finEntregaPedidos,
+          align: 'right',
+          required: true,
+          format: n2,
+        },
+        {
+          name: 'ingreso-venta',
+          label: 'R | Ingreso Venta',
+          // eslint-disable-next-line consistent-return
+          field: (row: IVectorEstado) => {
+            if (row.emisor instanceof Empleado && row.evento === Evento.FinEntregaPedido) {
+              return row.emisor.ingresoUltimaEntrega;
+            }
+          },
+          align: 'right',
+          required: true,
+          format: $,
+        },
+        {
+          name: 'almacen',
+          label: 'Almacén',
+          field: (row: IVectorEstado) => _
+            .toPairs(row.pedidos?.groupAlmacenado())
+            .map(([tipo, pedidos]) => `${tipo}: ${pedidos.length}`)
+            .join(' | '),
           align: 'right',
           required: true,
         },
