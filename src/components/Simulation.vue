@@ -158,10 +158,13 @@
   } from '@vue/composition-api';
 
   import _ from 'lodash-es';
+  import { jStat } from 'jstat';
 
   import * as v from 'helpers/validation';
+  import { incrementalMean, incrementalStd } from 'helpers/statistics';
 
   import { IParameters } from 'components/Parameters.vue';
+  import { IResults, IRunResults } from 'components/Results.vue';
 
   enum Evento {
     InicioSimulacion = 'Inicio Simulación',
@@ -196,15 +199,51 @@
     readonly finTurno: number;
     sobretiempo?: number;
 
+    tiempoEntreLlegadas: {
+      cantidad: number;
+      promedio: number;
+      desviacion: number;
+    }
+
+    ordenCocineros: number[];
+
     constructor(tipo: TipoTurno, inicioTurno: number, finTurno: number) {
       super();
       this.tipo = tipo;
       this.inicioTurno = inicioTurno;
       this.finTurno = finTurno;
+
+      this.tiempoEntreLlegadas = {
+        cantidad: 0,
+        promedio: 0,
+        desviacion: 0,
+      };
+
+      this.ordenCocineros = [];
     }
 
     getNombre() {
       return `Turno (${_.startCase(this.tipo)})`;
+    }
+
+    updateTiempoEntreLlegadas(tiempoEntreLlegadas: number) {
+      const {
+        cantidad: cantidadAnterior,
+        promedio: promedioAnterior,
+        desviacion: desviacionAnterior,
+      } = this.tiempoEntreLlegadas;
+
+      const cantidadActual = cantidadAnterior + 1;
+      const promedioActual = incrementalMean(
+        tiempoEntreLlegadas, cantidadActual, promedioAnterior,
+      );
+      const desviacionActual = incrementalStd(
+        tiempoEntreLlegadas, cantidadActual, promedioAnterior, promedioActual, desviacionAnterior,
+      );
+
+      this.tiempoEntreLlegadas.cantidad = cantidadActual;
+      this.tiempoEntreLlegadas.promedio = promedioActual;
+      this.tiempoEntreLlegadas.desviacion = desviacionActual;
     }
 
     getSobretiempo(reloj: number) {
@@ -522,6 +561,9 @@
       tipo === TipoEmpleado.Repartidor && estado === EstadoEmpleado.Libre
     ));
 
+    getCocineros = () => this.filter(({ tipo }) => tipo === TipoEmpleado.Cocinero);
+    getRepartidores = () => this.filter(({ tipo }) => tipo === TipoEmpleado.Repartidor);
+
     getOcupados = () => this.filter(({ estado }) => estado === EstadoEmpleado.Ocupado);
     getNoDisponibles = () => this.filter(({ estado }) => estado === EstadoEmpleado.NoDisponible);
 
@@ -638,6 +680,8 @@
         tiempoEntreLlegadas,
         proximaLlegada: tiempoEntreLlegadas,
       };
+
+      vector.turno?.updateTiempoEntreLlegadas(tiempoEntreLlegadas);
     }
 
     return vector;
@@ -718,6 +762,7 @@
         tiempoEntreLlegadas,
         proximaLlegada,
       };
+      vector.turno?.updateTiempoEntreLlegadas(tiempoEntreLlegadas);
     }
     else {
       vector.llegadaPedido = undefined;
@@ -832,6 +877,9 @@
       }
 
       empleado.iniciarPreparacion(tiempoLlegada, tiempoPreparacion, pedido);
+      if (vector.turno) {
+        vector.turno.ordenCocineros.push(empleado.id);
+      }
     }
 
     return vector;
@@ -894,6 +942,10 @@
     }
 
     cocinero.finalizarPreparacion(vector.reloj, tiempoPreparacion, pedido);
+
+    if (vector.turno && pedido) {
+      vector.turno.ordenCocineros.push(cocinero.id);
+    }
 
     const repartidoresLibres = vector.empleados?.getRepartidoresLibres() as Empleado[];
 
@@ -1037,6 +1089,268 @@
     return generarFinSimulacion(estado, parametros);
   }
 
+  function calcularResultadosTurno(vector: IVectorEstado): IRunResults {
+    const tiempoEntreLlegadas = vector.turno?.tiempoEntreLlegadas as IRunResults['tiempoEntreLlegadas'];
+
+    const cantidadPedidosPorHora = _(vector.pedidos)
+      .groupBy(({ tiempoLlegada }: Pedido) => Math.ceil(tiempoLlegada / 60))
+      .mapValues('length')
+      .values()
+      .value();
+    const cantidadPedidos = {
+      promedio: jStat.mean(cantidadPedidosPorHora),
+      desviacion: jStat.stdev(cantidadPedidosPorHora),
+    };
+
+    const tipoProductoPedido = _(vector.pedidos)
+      .groupBy('tipo')
+      .mapValues('length')
+      .value();
+
+    const tiemposPreparacionSandwiches = _(
+      vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Sandwiches),
+    )
+      .map('tiempoPreparacion')
+      .without(undefined, null)
+      .value();
+    const tiempoPreparacionSandwich = {
+      promedio: jStat.mean(tiemposPreparacionSandwiches),
+      desviacion: jStat.stdev(tiemposPreparacionSandwiches),
+    };
+
+    const tiemposPreparacionPizzas = _(
+      vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Pizzas),
+    )
+      .map('tiempoPreparacion')
+      .without(undefined, null)
+      .value();
+
+    const tiempoPreparacionPizza = {
+      promedio: jStat.mean(tiemposPreparacionPizzas),
+      desviacion: jStat.stdev(tiemposPreparacionPizzas),
+    };
+
+    const tiemposPreparacionEmpanadas = _(
+      vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Empanadas),
+    )
+      .map('tiempoPreparacion')
+      .without(undefined, null)
+      .value();
+    const tiempoPreparacionEmpanadas = {
+      promedio: jStat.mean(tiemposPreparacionEmpanadas),
+      desviacion: jStat.stdev(tiemposPreparacionEmpanadas),
+    };
+
+    const cantidadesEmpanadas = _(
+      vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Empanadas),
+    )
+      .map('cantidad')
+      .value();
+    const demandaEmpanadas = {
+      promedio: jStat.mean(cantidadesEmpanadas),
+      desviacion: jStat.stdev(cantidadesEmpanadas),
+    };
+
+    const ingresosHamburguesaLomito = _(
+      vector.pedidos?.filter(({
+        tipo,
+        estado,
+      }) => (
+        (tipo === TipoPedido.Hamburgesas || tipo === TipoPedido.Lomitos)
+        && estado === EstadoPedido.Entregado
+      )),
+    )
+      .map('ingresoVenta')
+      .without(undefined, null)
+      .value();
+    const ingresoHamburguesaLomito = {
+      promedio: jStat.mean(ingresosHamburguesaLomito),
+      desviacion: jStat.stdev(ingresosHamburguesaLomito),
+    };
+
+    const ordenCocineros = vector.turno?.ordenCocineros || [];
+
+    const tiemposEntrega = _(
+      vector.pedidos?.getEntregado(),
+    )
+      .map('tiempoEntrega')
+      .value();
+    const tiempoEntrega = {
+      promedio: jStat.mean(tiemposEntrega),
+      desviacion: jStat.stdev(tiemposEntrega),
+    };
+
+    return {
+      tiempoEntreLlegadas,
+      cantidadPedidos,
+      tipoProductoPedido,
+      tiempoPreparacionSandwich,
+      tiempoPreparacionPizza,
+      tiempoPreparacionEmpanadas,
+      demandaEmpanadas,
+      ingresoHamburguesaLomito,
+      ordenCocineros,
+      tiempoEntrega,
+    };
+  }
+
+  function calcularResultados(vectorMañana: IVectorEstado, vectorNoche: IVectorEstado): IResults {
+    // eslint-disable-next-line prefer-destructuring
+    const tiemposLibreCocineros = [
+      ..._.map(vectorMañana.empleados?.getCocineros(), 'tiempoLibre'),
+      ..._.map(vectorNoche.empleados?.getCocineros(), 'tiempoLibre'),
+    ];
+
+    const tiempoPromedioLibreCocineros = jStat.mean(tiemposLibreCocineros);
+
+    const tiemposLibreRepartidores = [
+      ..._.map(vectorMañana.empleados?.getRepartidores(), 'tiempoLibre'),
+      ..._.map(vectorNoche.empleados?.getRepartidores(), 'tiempoLibre'),
+    ];
+
+    const tiempoPromedioLibreRepartidores = jStat.mean(tiemposLibreRepartidores);
+
+    const pedidosEntregados = [
+      ...vectorMañana.pedidos?.getEntregado(),
+      ...vectorNoche.pedidos?.getEntregado(),
+    ];
+
+    const pedidosAbandonados = [
+      ...vectorMañana.pedidos?.getAbandonado(),
+      ...vectorNoche.pedidos?.getAbandonado(),
+    ];
+
+    const ventasAbandonadas = pedidosAbandonados.length;
+    const maxVentasAbandonadas = ventasAbandonadas;
+
+    const pedidosPerdidos = pedidosEntregados.filter(
+      ({ ingresoVenta }) => ingresoVenta === 0,
+    );
+
+    const pedidosGratis = pedidosPerdidos.length;
+    const perdidasVenta = _.sumBy(pedidosPerdidos, 'precioVenta');
+
+    const ingresosVentas = _.map(pedidosEntregados, 'ingresoVenta');
+
+    const ingresosVenta = {
+      total: _.sum(ingresosVentas),
+      promedio: jStat.mean(ingresosVentas),
+      desviacion: jStat.stdev(ingresosVentas),
+    };
+
+    const esperasEnColaPreparacion = [
+      ...vectorMañana.pedidos || [],
+      ...vectorNoche.pedidos || [],
+    ].map(
+      ({ tiempoLlegada, inicioPreparacion, tiempoAbandono }) => ((inicioPreparacion ?? tiempoAbandono) - tiempoLlegada),
+    );
+
+    const esperaPromedioEnColaPreparacion = jStat.mean(esperasEnColaPreparacion);
+
+    const tiemposEnSistema = pedidosEntregados.map(
+      ({ tiempoLlegada, finEntrega = tiempoLlegada }) => (finEntrega - tiempoLlegada),
+    );
+
+    const tiempoPromedioEnSistema = jStat.mean(tiemposEnSistema);
+
+    const ingresosMenores250 = pedidosEntregados
+      .filter(({ ingresoVenta = 0 }) => ingresoVenta <= 250)
+      .length;
+
+    const probabilidadIngresoMenor250 = ingresosMenores250 / pedidosEntregados.length;
+
+    const pedidosGratisMayor5 = (pedidosGratis >= 5) ? 1 : 0;
+
+    return {
+      tiempoPromedioLibreCocineros,
+      tiempoPromedioLibreRepartidores,
+      ventasAbandonadas,
+      maxVentasAbandonadas,
+      pedidosGratis,
+      perdidasVenta,
+      ingresosVenta,
+      esperaPromedioEnColaPreparacion,
+      tiempoPromedioEnSistema,
+      probabilidadIngresoMenor250,
+      pedidosGratisMayor5,
+    };
+  }
+
+  function mergeResultados(iteracion: number, resultadosAnteriores: IResults, resultadosActuales: IResults): IResults {
+    if (iteracion === 1) {
+      return resultadosActuales;
+    }
+
+    return {
+      tiempoPromedioLibreCocineros: incrementalMean(
+        resultadosActuales.tiempoPromedioLibreCocineros,
+        iteracion,
+        resultadosAnteriores.tiempoPromedioLibreCocineros,
+      ),
+      tiempoPromedioLibreRepartidores: incrementalMean(
+        resultadosActuales.tiempoPromedioLibreRepartidores,
+        iteracion,
+        resultadosAnteriores.tiempoPromedioLibreRepartidores,
+      ),
+      ventasAbandonadas: incrementalMean(
+        resultadosActuales.ventasAbandonadas,
+        iteracion,
+        resultadosAnteriores.ventasAbandonadas,
+      ),
+      maxVentasAbandonadas: Math.max(
+        resultadosActuales.ventasAbandonadas,
+        resultadosAnteriores.ventasAbandonadas,
+      ),
+      perdidasVenta: incrementalMean(
+        resultadosActuales.perdidasVenta,
+        iteracion,
+        resultadosAnteriores.perdidasVenta,
+      ),
+      pedidosGratis: incrementalMean(
+        resultadosActuales.pedidosGratis,
+        iteracion,
+        resultadosAnteriores.pedidosGratis,
+      ),
+      ingresosVenta: {
+        total: incrementalMean(
+          resultadosActuales.ingresosVenta.total,
+          iteracion,
+          resultadosAnteriores.ingresosVenta.total,
+        ),
+        promedio: incrementalMean(
+          resultadosActuales.ingresosVenta.promedio,
+          iteracion,
+          resultadosAnteriores.ingresosVenta.promedio,
+        ),
+        desviacion: incrementalMean(
+          resultadosActuales.ingresosVenta.desviacion,
+          iteracion,
+          resultadosAnteriores.ingresosVenta.desviacion,
+        ),
+      },
+      esperaPromedioEnColaPreparacion: incrementalMean(
+        resultadosActuales.esperaPromedioEnColaPreparacion,
+        iteracion,
+        resultadosAnteriores.esperaPromedioEnColaPreparacion,
+      ),
+      tiempoPromedioEnSistema: incrementalMean(
+        resultadosActuales.tiempoPromedioEnSistema,
+        iteracion,
+        resultadosAnteriores.tiempoPromedioEnSistema,
+      ),
+      probabilidadIngresoMenor250: incrementalMean(
+        resultadosActuales.probabilidadIngresoMenor250,
+        iteracion,
+        resultadosAnteriores.probabilidadIngresoMenor250,
+      ),
+      pedidosGratisMayor5: incrementalMean(
+        resultadosActuales.pedidosGratisMayor5,
+        iteracion,
+        resultadosAnteriores.pedidosGratisMayor5,
+      ),
+    };
+  }
+
   function executeRun(
     parametros: IParameters,
   ): TReplica {
@@ -1045,7 +1359,6 @@
     vectores.push(_.cloneDeep(estado));
 
     do {
-      // console.table([estado]);
       estado = executeNext(estado, parametros);
 
       vectores.push(_.cloneDeep(estado));
@@ -1058,30 +1371,54 @@
     parametros: IParameters,
     configuracion: IConfiguration,
   ) {
-    // console.log('Running simulation');
     const {
       runs,
       filter,
     } = configuracion;
 
     const replicas: TReplica[] = [];
+    const resultadosTurno: {
+      mañana: IRunResults,
+      noche: IRunResults,
+    }[] = [];
+
     let r = 0;
 
+    let resultadosSimulación: IResults = {} as IResults;
+
     while (r < runs) {
-      // console.log('Executing run:', r);
       const replica = executeRun(toRaw(parametros));
 
+      const [vectorFinTurnoMañana, vectorFinTurnoNoche] = replica.filter(({ evento }) => evento === Evento.FinTurno);
+
+      const resultadosReplica = calcularResultados(vectorFinTurnoMañana, vectorFinTurnoNoche);
+
+      resultadosSimulación = mergeResultados(
+        r + 1, resultadosSimulación, resultadosReplica,
+      );
+
+      // console.log(resultadosReplica);
+
       if (filter(r)) {
+        const resultadosTurnoMañana = calcularResultadosTurno(vectorFinTurnoMañana);
+        const resultadosTurnoNoche = calcularResultadosTurno(vectorFinTurnoNoche);
+
+        resultadosTurno.push({
+          mañana: resultadosTurnoMañana,
+          noche: resultadosTurnoNoche,
+        });
         replicas.push(replica);
       }
 
-      // @todo merge results
       r++;
     }
 
+    // console.log(resultadosSimulación);
+
     return {
       replicas,
-      resultados: [],
+      resultadosReplicas: resultadosTurno,
+      resultados: resultadosSimulación,
     };
   }
 
@@ -1114,7 +1451,7 @@
     )
   } %`;
 
-  function useSimulation(props: { parameters: IParameters }) {
+  function useSimulation(props: { parameters: IParameters }, emit: any) {
     const state = reactive({
       iteraciones: 100,
       condicionMuestreo: '!(n % 50)',
@@ -1360,7 +1697,10 @@
         state.replica = [];
         state.loading = true;
 
-        const { replicas, resultados } = executeSimulation(props.parameters, configuration);
+        const { replicas, resultadosReplicas, resultados } = executeSimulation(props.parameters, configuration);
+
+        emit('finishRun', resultadosReplicas[0]);
+        emit('finish', resultados);
 
         state.loading = false;
         state.replicas = replicas;
@@ -1381,10 +1721,10 @@
         type: Object as PropType<IParameters>,
       },
     },
-    setup(props) {
+    setup(props, { emit }) {
       return {
         v,
-        ...useSimulation(props),
+        ...useSimulation(props, emit),
       };
     },
   });

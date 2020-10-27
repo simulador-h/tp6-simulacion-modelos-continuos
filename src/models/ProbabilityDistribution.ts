@@ -39,7 +39,7 @@ export class ProbabilityDistribution {
   }
 
   clone(): ProbabilityDistribution {
-    return new ProbabilityDistribution(this.type, this.parameters, this.validators);
+    return new ProbabilityDistribution(this.type, this.parameters, this.validators, this.generator);
   }
 
   sample(): number {

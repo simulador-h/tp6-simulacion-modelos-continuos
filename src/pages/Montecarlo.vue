@@ -9,7 +9,7 @@
     >
       <q-tab name="parameters" label="Parámetros" />
       <q-tab name="simulation" label="Simulación" />
-      <q-tab name="results" label="Resultados" />
+      <q-tab name="results" label="Resultados" :disable="!showResults" />
     </q-tabs>
 
     <q-tab-panels v-model="activeTab" animated keep-alive>
@@ -17,10 +17,10 @@
         <parameters :parameters="parameters" @submit="save" @reset="reload" />
       </q-tab-panel>
       <q-tab-panel name="simulation">
-        <simulation :parameters="parameters" />
+        <simulation :parameters="parameters" @finishRun="finishRun" @finish="finish" />
       </q-tab-panel>
       <q-tab-panel name="results">
-        <results :results="results" />
+        <results :run-results="runResults" :results="results" />
       </q-tab-panel>
     </q-tab-panels>
   </q-page>
@@ -30,6 +30,7 @@
   import {
     defineComponent,
     reactive,
+    computed,
     toRefs,
   } from '@vue/composition-api';
 
@@ -42,8 +43,8 @@
   import { DiscreteDistribution } from 'models/DiscreteDistribution';
 
   import Parameters, { IParameters } from 'components/Parameters.vue';
+  import Results, { IResults, IRunResults } from 'components/Results.vue';
   import Simulation from 'components/Simulation.vue';
-  import Results, { IResults } from 'components/Results.vue';
 
   const defaultParameters: IParameters = {
     pedidos: {
@@ -97,15 +98,14 @@
   };
 
   function useMontecarlo() {
-    const state = reactive({
+    const state: any = reactive({
       activeTab: 'parameters',
       parameters: _.cloneDeep(defaultParameters),
-      results: {
-        tiempoEntrePedidos: {
-          promedio: 20,
-          desviacion: 40,
-        },
-      }, // @todo condition initial render or show empty results screen
+      results: {},
+      runResults: {},
+      showResults: computed(
+        () => !_.isEmpty(state.results) && !_.isEmpty(state.runResults),
+      ),
 
       save: (parameters: IParameters) => {
         state.parameters = _.cloneDeep(parameters);
@@ -113,8 +113,11 @@
       reload: () => {
         state.parameters = _.cloneDeep(defaultParameters);
       },
+      finishRun: (results: IRunResults) => {
+        state.runResults = results;
+      },
       finish: (results: IResults) => {
-        state.results = results; // @todo check reactivity
+        state.results = results;
       },
     });
 
