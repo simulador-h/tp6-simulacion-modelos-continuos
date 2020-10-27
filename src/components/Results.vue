@@ -521,7 +521,7 @@
               ¿Cuál es la probabilidad de que abandonen o sean gratis 5 o más pedidos por día?
             </span>
             <span class="text-uppercase text-caption">
-              {{ results.pedidosGratisMayor5.toFixed(2) }}
+              {{ results.pedidosAbandonadosOGratisMayor5.toFixed(2) }}
             </span>
           </q-card-section>
         </q-card>
@@ -555,7 +555,7 @@
     esperaPromedioEnColaPreparacion: number
     tiempoPromedioEnSistema: number
     probabilidadIngresoMenor250: number
-    pedidosGratisMayor5: number
+    pedidosAbandonadosOGratisMayor5: number
   }
 
   export interface IRunResults {

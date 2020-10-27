@@ -1259,7 +1259,7 @@
 
     const probabilidadIngresoMenor250 = ingresosMenores250 / pedidosEntregados.length;
 
-    const pedidosGratisMayor5 = (pedidosGratis >= 5) ? 1 : 0;
+    const pedidosAbandonadosOGratisMayor5 = (pedidosGratis + ventasAbandonadas) >= 5 ? 1 : 0;
 
     return {
       tiempoPromedioLibreCocineros,
@@ -1272,7 +1272,7 @@
       esperaPromedioEnColaPreparacion,
       tiempoPromedioEnSistema,
       probabilidadIngresoMenor250,
-      pedidosGratisMayor5,
+      pedidosAbandonadosOGratisMayor5,
     };
   }
 
@@ -1343,10 +1343,10 @@
         iteracion,
         resultadosAnteriores.probabilidadIngresoMenor250,
       ),
-      pedidosGratisMayor5: incrementalMean(
-        resultadosActuales.pedidosGratisMayor5,
+      pedidosAbandonadosOGratisMayor5: incrementalMean(
+        resultadosActuales.pedidosAbandonadosOGratisMayor5,
         iteracion,
-        resultadosAnteriores.pedidosGratisMayor5,
+        resultadosAnteriores.pedidosAbandonadosOGratisMayor5,
       ),
     };
   }
