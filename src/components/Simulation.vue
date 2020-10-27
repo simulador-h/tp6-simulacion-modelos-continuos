@@ -1638,7 +1638,11 @@
         //   name: 'repartidor--pedido-tiempo-entrega',
         //   label: 'R | Tiempo entrega',
         //   field: (row: IVectorEstado) => {
-        //     if (row.emisor instanceof Empleado && row.evento === Evento.FinPreparacionPedido && row.evento === Evento.FinEntregaPedido) {
+        //     if (
+        //       row.emisor instanceof Empleado
+        //       && row.evento === Evento.FinPreparacionPedido
+        //       && row.evento === Evento.FinEntregaPedido
+        //     ) {
         //     }
         //   },
         //   align: 'right',
