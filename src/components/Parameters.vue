@@ -321,7 +321,7 @@
     PropType,
   } from '@vue/composition-api';
 
-  import _ from 'lodash-es';
+  import _ from 'lodash';
 
   import { ProbabilityDistribution as Distribution } from 'models/ProbabilityDistribution';
 

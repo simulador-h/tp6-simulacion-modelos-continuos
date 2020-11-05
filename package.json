@@ -13,12 +13,13 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.0.0",
+    "@types/lodash": "^4.14.164",
     "@vue/composition-api": "^0.6.4",
     "connect-history-api-fallback": "^1.6.0",
     "core-js": "^3.6.5",
     "express": "^4.17.1",
     "jstat": "^1.9.4",
-    "lodash-es": "^4.17.15",
+    "lodash": "^4.17.20",
     "quasar": "^1.0.0",
     "serve-static": "^1.14.1",
     "vue-fragment": "^1.5.1"

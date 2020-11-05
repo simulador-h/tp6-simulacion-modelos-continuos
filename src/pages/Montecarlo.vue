@@ -34,7 +34,7 @@
     toRefs,
   } from '@vue/composition-api';
 
-  import _ from 'lodash-es';
+  import _ from 'lodash';
 
   import { UniformDistribution } from 'models/UniformDistribution';
   import { NormalDistribution } from 'models/NormalDistribution';

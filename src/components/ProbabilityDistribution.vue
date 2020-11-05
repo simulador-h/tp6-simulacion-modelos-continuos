@@ -85,7 +85,7 @@
     Fragment,
   } from 'vue-fragment';
 
-  import _ from 'lodash-es';
+  import _ from 'lodash';
 
   import { ProbabilityDistribution } from 'models/ProbabilityDistribution';
   import { UniformDistribution } from 'models/UniformDistribution';

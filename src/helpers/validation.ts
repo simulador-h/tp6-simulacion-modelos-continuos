@@ -1,4 +1,4 @@
-import _ from 'lodash-es';
+import _ from 'lodash';
 
 const hasValue = (v: unknown) => (!_.isNil(v) && v !== '');
 

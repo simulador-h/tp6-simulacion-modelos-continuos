@@ -157,7 +157,7 @@
     PropType,
   } from '@vue/composition-api';
 
-  import _ from 'lodash-es';
+  import _ from 'lodash';
   import { jStat } from 'jstat';
 
   import * as v from 'helpers/validation';
@@ -1111,7 +1111,7 @@
       vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Sandwiches),
     )
       .map('tiempoPreparacion')
-      .without(undefined, null)
+      .without(undefined)
       .value();
     const tiempoPreparacionSandwich = {
       promedio: jStat.mean(tiemposPreparacionSandwiches),
@@ -1122,7 +1122,7 @@
       vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Pizzas),
     )
       .map('tiempoPreparacion')
-      .without(undefined, null)
+      .without(undefined)
       .value();
 
     const tiempoPreparacionPizza = {
@@ -1134,7 +1134,7 @@
       vector.pedidos?.filter(({ tipo }) => tipo === TipoPedido.Empanadas),
     )
       .map('tiempoPreparacion')
-      .without(undefined, null)
+      .without(undefined)
       .value();
     const tiempoPreparacionEmpanadas = {
       promedio: jStat.mean(tiemposPreparacionEmpanadas),
@@ -1161,7 +1161,7 @@
       )),
     )
       .map('ingresoVenta')
-      .without(undefined, null)
+      .without(undefined)
       .value();
     const ingresoHamburguesaLomito = {
       promedio: jStat.mean(ingresosHamburguesaLomito),
