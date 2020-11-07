@@ -1353,15 +1353,21 @@
 
   function executeRun(
     parametros: IParameters,
+    capturarVectoresEstado: boolean,
   ): TReplica {
     const vectores: IVectorEstado[] = [];
     let estado: IVectorEstado = generarInicioSimulacion(parametros);
-    vectores.push(_.cloneDeep(estado));
+
+    if (capturarVectoresEstado) {
+      vectores.push(_.cloneDeep(estado));
+    }
 
     do {
       estado = executeNext(estado, parametros);
 
-      vectores.push(_.cloneDeep(estado));
+      if (capturarVectoresEstado || estado.evento === Evento.InicioTurno || estado.evento === Evento.FinTurno) {
+        vectores.push(_.cloneDeep(estado));
+      }
     } while (estado.evento !== Evento.FinSimulacion);
 
     return vectores;
@@ -1387,7 +1393,9 @@
     let resultadosSimulación: IResults = {} as IResults;
 
     while (r < runs) {
-      const replica = executeRun(toRaw(parametros));
+      const guardarReplica = filter(r);
+
+      const replica = executeRun(toRaw(parametros), guardarReplica);
 
       const [vectorFinTurnoMañana, vectorFinTurnoNoche] = replica.filter(({ evento }) => evento === Evento.FinTurno);
 
@@ -1399,7 +1407,7 @@
 
       // console.log(resultadosReplica);
 
-      if (filter(r)) {
+      if (guardarReplica) {
         const resultadosTurnoMañana = calcularResultadosTurno(vectorFinTurnoMañana);
         const resultadosTurnoNoche = calcularResultadosTurno(vectorFinTurnoNoche);
 
