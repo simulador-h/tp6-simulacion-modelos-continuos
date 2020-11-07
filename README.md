@@ -1,6 +1,6 @@
-# Simulador H | TP-5 (tp5-modelos-simulacion-dinamicos)
+# Simulador H | TP-6 (tp6-simulacion-modelos-continuos)
 
-Simulación 2020 | TP-5 | Modelos de Simulación Dinámicos
+Simulación 2020 | TP-6 | Simulación de Modelos Continuos
 
 ## Install the dependencies
 ```bash

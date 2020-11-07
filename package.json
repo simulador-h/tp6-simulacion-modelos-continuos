@@ -1,8 +1,8 @@
 {
-  "name": "tp5-modelos-simulacion-dinamicos",
+  "name": "tp6-simulacion-modelos-continuos",
   "version": "0.0.1",
-  "description": "Simulación 2020 | TP-5 | Modelos de Simulación Dinámicos",
-  "productName": "Simulador H | TP-5",
+  "description": "Simulación 2020 | TP-6 | Simulación de Modelos Continuos",
+  "productName": "Simulador H | TP-6",
   "author": "Lucas Astrada <astrada.sis@gmail.com>",
   "private": true,
   "scripts": {
@@ -15,6 +15,7 @@
     "@quasar/extras": "^1.0.0",
     "@types/lodash": "^4.14.164",
     "@vue/composition-api": "^0.6.4",
+    "chart.js": "^2.9.4",
     "connect-history-api-fallback": "^1.6.0",
     "core-js": "^3.6.5",
     "express": "^4.17.1",
@@ -22,6 +23,7 @@
     "lodash": "^4.17.20",
     "quasar": "^1.0.0",
     "serve-static": "^1.14.1",
+    "vue-chartjs": "^3.5.1",
     "vue-fragment": "^1.5.1"
   },
   "devDependencies": {
@@ -34,7 +36,8 @@
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-loader": "^3.0.3",
     "eslint-plugin-import": "^2.22.0",
-    "eslint-plugin-vue": "^7.0.0-beta.3"
+    "eslint-plugin-vue": "^7.0.0-beta.3",
+    "worker-plugin": "^5.0.0"
   },
   "engines": {
     "node": ">= 10.18.1",

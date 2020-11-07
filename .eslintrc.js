@@ -107,6 +107,10 @@ module.exports = {
       parser: 'espree',
     },
     {
+      files: ['*.worker.ts'],
+      env: { worker: true },
+    },
+    {
       files: ['*.ts', '*.vue'],
       extends: [
         'plugin:@typescript-eslint/recommended',

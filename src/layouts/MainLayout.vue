@@ -10,7 +10,7 @@
         />
 
         <q-toolbar-title>
-          Simulador H - TP5
+          Simulador H - TP6
         </q-toolbar-title>
       </q-toolbar>
     </q-header>

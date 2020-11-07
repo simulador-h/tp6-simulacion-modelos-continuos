@@ -5,6 +5,7 @@
 
 const path = require('path');
 const { configure } = require('quasar/wrappers');
+const WorkerPlugin = require('worker-plugin');
 
 module.exports = configure((ctx) => ({
   // https://quasar.dev/quasar-cli/supporting-ts
@@ -85,6 +86,16 @@ module.exports = configure((ctx) => ({
         models: path.resolve(__dirname, './src/models'),
         helpers: path.resolve(__dirname, './src/helpers'),
       };
+
+      cfg.output = {
+        ...cfg.output,
+        filename: '[name].bundle.js',
+      };
+
+      cfg.plugins = [
+        ...cfg.plugins,
+        new WorkerPlugin(),
+      ];
     },
   },
 
@@ -198,7 +209,7 @@ module.exports = configure((ctx) => ({
     builder: {
       // https://www.electron.build/configuration/configuration
 
-      appId: 'tp5-modelos-simulacion-dinamicos',
+      appId: 'tp6-simulacion-modelos-continuos',
     },
 
     // More info: https://quasar.dev/quasar-cli/developing-electron-apps/node-integration
