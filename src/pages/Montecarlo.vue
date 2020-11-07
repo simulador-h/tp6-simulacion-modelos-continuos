@@ -8,16 +8,20 @@
       class="text-grey"
     >
       <q-tab name="parameters" label="Parámetros" />
+      <q-tab name="euler" label="Euler" />
       <q-tab name="simulation" label="Simulación" />
       <q-tab name="results" label="Resultados" :disable="!showResults" />
     </q-tabs>
 
     <q-tab-panels v-model="activeTab" animated keep-alive>
       <q-tab-panel name="parameters">
-        <parameters :parameters="parameters" @submit="save" @reset="reload" />
+        <parameters :parameters="parameters" @submit="saveParameters" @reset="reloadParameters" />
+      </q-tab-panel>
+      <q-tab-panel name="euler">
+        <euler :euler="euler" @submit="saveEuler" @reset="reloadEuler" />
       </q-tab-panel>
       <q-tab-panel name="simulation">
-        <simulation :parameters="parameters" @finishRun="finishRun" @finish="finish" />
+        <simulation :parameters="parameters" :euler="euler" @finishRun="finishRun" @finish="finish" />
       </q-tab-panel>
       <q-tab-panel name="results">
         <results :run-results="runResults" :results="results" />
@@ -42,6 +46,7 @@
   import { PoissonDistribution } from 'models/PoissonDistribution';
   import { DiscreteDistribution } from 'models/DiscreteDistribution';
 
+  import Euler, { IEuler } from 'components/Euler.vue';
   import Parameters, { IParameters } from 'components/Parameters.vue';
   import Results, { IResults, IRunResults } from 'components/Results.vue';
   import Simulation from 'components/Simulation.vue';
@@ -97,21 +102,37 @@
     },
   };
 
+  const defaultEuler: IEuler = {
+    condicionesIniciales: {
+      t: 0,
+      E: 100,
+    },
+    K: 0.3,
+    h: 0.05,
+  };
+
   function useMontecarlo() {
     const state: any = reactive({
       activeTab: 'parameters',
       parameters: _.cloneDeep(defaultParameters),
+      euler: _.cloneDeep(defaultEuler),
       results: {},
       runResults: {},
       showResults: computed(
         () => !_.isEmpty(state.results) && !_.isEmpty(state.runResults),
       ),
 
-      save: (parameters: IParameters) => {
+      saveParameters: (parameters: IParameters) => {
         state.parameters = _.cloneDeep(parameters);
       },
-      reload: () => {
+      reloadParameters: () => {
         state.parameters = _.cloneDeep(defaultParameters);
+      },
+      saveEuler: (euler: IParameters) => {
+        state.euler = _.cloneDeep(euler);
+      },
+      reloadEuler: () => {
+        state.euler = _.cloneDeep(defaultEuler);
       },
       finishRun: (results: IRunResults) => {
         state.runResults = results;
@@ -126,7 +147,7 @@
 
   export default defineComponent({
     name: 'Montecarlo',
-    components: { Parameters, Simulation, Results },
+    components: { Parameters, Euler, Simulation, Results },
     setup() {
       return useMontecarlo();
     },

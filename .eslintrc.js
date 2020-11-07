@@ -57,10 +57,10 @@ module.exports = {
 
     // Stylistic Issues
     'brace-style': ['error', 'stroustrup', {
-      allowSingleLine: true,
+      'allowSingleLine': true,
     }],
     'lines-between-class-members': ['error', 'always', {
-      exceptAfterSingleLine: true,
+      'exceptAfterSingleLine': true,
     }],
     'max-len': ['error', {
       'code': 125,
@@ -91,6 +91,9 @@ module.exports = {
 
     // TypeScript
     '@typescript-eslint/no-shadow': 'error',
+    '@typescript-eslint/no-unused-vars': ['error', {
+      'ignoreRestSiblings': true,
+    }],
 
     // Imports
     'import/default': 'error',
