@@ -847,7 +847,9 @@
 
     if (cocinerosLibres.length) {
       // @todo [Math.floor(Math.random() * length))]
-      const empleado = _.maxBy(cocinerosLibres, 'tiempoLibre') as Empleado;
+      const empleado = _.maxBy(
+        cocinerosLibres, (cocinero) => cocinero.tiempoLibre + (vector.reloj - cocinero.inicioTiempoLibre),
+      ) as Empleado;
       let tiempoPreparacion;
 
       if (pedido.tipo === TipoPedido.Sandwiches) {
