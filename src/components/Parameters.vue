@@ -119,11 +119,6 @@
                 hide-bottom-space lazy-rules
                 :rules="[v.required(), v.gte(0)]"
               />
-
-              <probability-distribution
-                v-model="pedidos.pizzas.tiempoPreparacion"
-                label="Tiempo de preparación"
-              />
             </q-card-section>
           </q-card>
         </div>

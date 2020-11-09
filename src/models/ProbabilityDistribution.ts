@@ -2,7 +2,7 @@ import _ from 'lodash';
 
 import { es } from 'helpers/locale';
 
-export type TDistributionParameters = Record<string, number>;
+export type TDistributionParameters = Record<string, any>;
 export type TDistributionValidators = Record<string, Array<(value: number) => true | string>>;
 export type TDistributionGenerator = (parameters: TDistributionParameters) => any;
 

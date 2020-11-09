@@ -39,8 +39,9 @@
   } from '@vue/composition-api';
 
   import _ from 'lodash';
+  import { jStat } from 'jstat';
 
-  import { UniformDistribution } from 'models/UniformDistribution';
+  import { ProbabilityDistribution } from 'models/ProbabilityDistribution';
   import { NormalDistribution } from 'models/NormalDistribution';
   import { ExponentialDistribution } from 'models/ExponentialDistribution';
   import { PoissonDistribution } from 'models/PoissonDistribution';
@@ -50,6 +51,15 @@
   import Parameters, { IParameters } from 'components/Parameters.vue';
   import Results, { IResults, IRunResults } from 'components/Results.vue';
   import Simulation from 'components/Simulation.vue';
+
+  import eulerLookupTable from 'assets/application/json/euler-lookup-table.json';
+
+  const eulerWorker = new Worker('workers/euler.worker.ts', { type: 'module' });
+
+  interface CustomParameters {
+    distribution: any
+    lookupTable: Record<string, number>
+  }
 
   const defaultParameters: IParameters = {
     pedidos: {
@@ -69,7 +79,18 @@
       pizzas: {
         cantidadPedido: 1,
         precioVenta: 250,
-        tiempoPreparacion: new UniformDistribution({ a: 15, b: 18 }),
+        tiempoPreparacion: new ProbabilityDistribution(
+          'custom',
+          {
+            distribution: jStat.uniform(0.3, 0.8),
+            lookupTable: eulerLookupTable,
+          } as CustomParameters,
+          {},
+          ({ distribution, lookupTable }) => {
+            const random = distribution.sample();
+            return lookupTable[random.toFixed(3)];
+          },
+        ),
       },
       empanadas: {
         cantidadPedido: new PoissonDistribution({ rate: 3 }),
@@ -108,7 +129,7 @@
       E: 100,
     },
     K: 0.3,
-    h: 0.5,
+    h: 0.05,
     ut: 0.5,
   };
 
@@ -129,8 +150,14 @@
       reloadParameters: () => {
         state.parameters = _.cloneDeep(defaultParameters);
       },
-      saveEuler: (euler: IParameters) => {
+      saveEuler: (euler: IEuler) => {
         state.euler = _.cloneDeep(euler);
+
+        eulerWorker.postMessage({
+          ...euler,
+          K: [0.3, 0.8],
+          resultado: 'simple',
+        });
       },
       reloadEuler: () => {
         state.euler = _.cloneDeep(defaultEuler);
@@ -142,6 +169,21 @@
         state.results = results;
       },
     });
+
+    eulerWorker.onmessage = ({ data }) => {
+      state.parameters.pedidos.pizzas.tiempoPreparacion = new ProbabilityDistribution(
+        'custom',
+        {
+          distribution: jStat.uniform(0.3, 0.8),
+          lookupTable: data,
+        } as CustomParameters,
+        {},
+        ({ distribution, lookupTable }) => {
+          const random = distribution.sample();
+          return lookupTable[random.toFixed(3)];
+        },
+      );
+    };
 
     return toRefs(state);
   }

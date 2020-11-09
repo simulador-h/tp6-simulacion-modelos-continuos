@@ -99,6 +99,7 @@
   } from '@vue/composition-api';
 
   import _ from 'lodash';
+  import { ChartOptions } from 'chart.js';
 
   import LineChart from 'components/LineChart.vue';
 
@@ -114,6 +115,11 @@
     K: number
     h: number
     ut: number
+  }
+
+  interface IEstado {
+    t: number
+    E: number
   }
 
   export default defineComponent({
@@ -168,7 +174,7 @@
               },
             }],
           },
-        },
+        } as ChartOptions,
       });
 
       eulerWorker.onmessage = ({ data }) => {
@@ -177,7 +183,7 @@
         state.chartData = {
           datasets: [{
             label: 'E',
-            data: estados.map(({ t: x, E: y }) => ({ x, y })),
+            data: estados.map(({ t: x, E: y }: IEstado) => ({ x, y })),
             borderWidth: 1,
 
             borderColor: 'rgb(103 194 58)',
@@ -219,6 +225,8 @@
         // eslint-disable-next-line vue/require-explicit-emits
         emit('reset');
       };
+
+      onRun();
 
       watch(
         () => props.euler,
