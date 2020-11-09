@@ -85,6 +85,7 @@ module.exports = configure((ctx) => ({
         routes: path.resolve(__dirname, './src/routes'),
         models: path.resolve(__dirname, './src/models'),
         helpers: path.resolve(__dirname, './src/helpers'),
+        workers: path.resolve(__dirname, './src/workers'),
       };
 
       cfg.output = {

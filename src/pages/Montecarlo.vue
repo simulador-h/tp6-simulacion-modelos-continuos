@@ -108,7 +108,8 @@
       E: 100,
     },
     K: 0.3,
-    h: 0.05,
+    h: 0.5,
+    ut: 0.5,
   };
 
   function useMontecarlo() {

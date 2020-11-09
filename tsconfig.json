@@ -12,7 +12,8 @@
       "pages/*": ["src/pages/*"],
       "routes/*": ["src/routes/*"],
       "models/*": ["src/models/*"],
-      "helpers/*": ["src/helpers/*"]
+      "helpers/*": ["src/helpers/*"],
+      "workers/*": ["src/workers/*"]
     }
   }
 }

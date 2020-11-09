@@ -48,7 +48,7 @@
                 :rules="[v.required(), v.gte(0)]"
               >
                 <template #hint>
-                  <span>{{ h ? `${ h / 0.05 } minutos` : '' }}</span>
+                  <span>{{ h ? `${ h / ut } minutos` : '' }}</span>
                 </template>
               </q-input>
             </q-card-section>
@@ -67,11 +67,14 @@
             <q-separator inset />
 
             <q-card-section class="q-gutter-md">
+              <line-chart :data="chartData" :options="chartOptions" />
             </q-card-section>
           </q-card>
         </div>
 
         <div class="col-12 row justify-end">
+          <q-btn label="Simular" color="green" @click="onRun" />
+          <div class="col-grow" />
           <q-btn label="Guardar" type="submit" color="primary" />
           <q-btn label="Restablecer" type="reset" color="primary" flat class="q-ml-sm" />
         </div>
@@ -97,7 +100,11 @@
 
   import _ from 'lodash';
 
+  import LineChart from 'components/LineChart.vue';
+
   import * as v from 'helpers/validation';
+
+  const eulerWorker = new Worker('workers/euler.worker.ts', { type: 'module' });
 
   export interface IEuler {
     condicionesIniciales: {
@@ -106,11 +113,12 @@
     }
     K: number
     h: number
+    ut: number
   }
 
   export default defineComponent({
     name: 'Parameters',
-    components: {},
+    components: { LineChart },
     props: {
       euler: {
         required: true,
@@ -119,13 +127,92 @@
     },
 
     setup(props, { emit }) {
-      const state = reactive(
-        _.cloneDeep(props.euler),
-      );
+      const state = reactive({
+        ..._.cloneDeep(props.euler),
+
+        chartData: {},
+        chartOptions: {
+          responsive: true,
+          maintainAspectRatio: false,
+          legend: {
+            display: false,
+          },
+          title: {
+            display: true,
+            text: 'Índice de elaboración',
+          },
+          tooltips: {
+            callbacks: {
+              title([{ label }]) {
+                return `${Number(Number(label).toFixed(3))} minutos`;
+              },
+              label({ value }) {
+                return `E: ${Number(value).toFixed(3)}`;
+              },
+            },
+          },
+          scales: {
+            xAxes: [{
+              type: 'linear',
+              ticks: {
+                min: 0,
+                stepSize: 1,
+              },
+            }],
+            yAxes: [{
+              type: 'linear',
+              ticks: {
+                min: 0,
+                max: 100,
+                stepSize: 20,
+              },
+            }],
+          },
+        },
+      });
+
+      eulerWorker.onmessage = ({ data }) => {
+        const estados = _.values(data)[0];
+
+        state.chartData = {
+          datasets: [{
+            label: 'E',
+            data: estados.map(({ t: x, E: y }) => ({ x, y })),
+            borderWidth: 1,
+
+            borderColor: 'rgb(103 194 58)',
+            backgroundColor: 'rgba(103 194 58 / 60%)',
+
+            pointBorderColor: 'rgb(103 194 58)',
+            pointBackgroundColor: 'white',
+
+            pointHoverBorderWidth: 2,
+            pointHoverBorderColor: 'rgb(103 194 58)',
+          }],
+        };
+      };
+
+      const onRun = () => {
+        eulerWorker.postMessage({
+          condicionesIniciales: {
+            E: state.condicionesIniciales.E,
+            t: state.condicionesIniciales.t,
+          },
+          K: state.K,
+          h: state.h,
+          ut: state.ut,
+          resultado: 'completo',
+        });
+      };
 
       const onSubmit = () => {
         // eslint-disable-next-line vue/require-explicit-emits
-        emit('submit', state);
+        emit('submit', {
+          condicionesIniciales: state.condicionesIniciales,
+          K: state.K,
+          h: state.h,
+          ut: state.ut,
+        });
       };
 
       const onReset = () => {
@@ -136,17 +223,19 @@
       watch(
         () => props.euler,
         () => {
-          const { condicionesIniciales, K, h } = _.cloneDeep(props.euler);
+          const { condicionesIniciales, K, h, ut } = _.cloneDeep(props.euler);
 
           state.condicionesIniciales = condicionesIniciales;
           state.K = K;
           state.h = h;
+          state.ut = ut;
         },
       );
 
       return {
         v,
         ...toRefs(state),
+        onRun,
         onSubmit,
         onReset,
       };
