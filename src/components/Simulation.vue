@@ -16,7 +16,7 @@
             <q-card-section>
               <q-input
                 v-model.number="iteraciones"
-                label="Número de réplicas"
+                label="Número de iteraciones"
                 type="number"
                 required
                 outlined stack-label
@@ -77,6 +77,20 @@
           Pizzería
         </div>
         <q-space />
+        <q-btn
+          class="q-mr-md text-primary"
+          flat round dense
+          icon="fas fa-angle-left"
+          :disable="!replicas || !replicas.length"
+          @click="onPrev"
+        />
+        <q-btn
+          class="q-mr-md text-primary"
+          flat round dense
+          icon="fas fa-angle-right"
+          :disable="!replicas || !replicas.length"
+          @click="onNext"
+        />
         <q-select
           v-model="columnasVisibles"
           class="col-2"
@@ -152,6 +166,7 @@
   import {
     defineComponent,
     reactive,
+    computed,
     toRefs,
     toRaw,
     PropType,
@@ -612,6 +627,7 @@
 
   let sistema: Sistema;
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function generarInicioSimulacion(parametros: IParameters): IVectorEstado {
     sistema = new Sistema();
 
@@ -627,6 +643,7 @@
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function generarFinSimulacion(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
     const {
       id, reloj, evento, emisor, ...estadoHeredado
@@ -687,6 +704,7 @@
     return vector;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function generarFinTurnoParcial(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
     const {
       id, reloj, evento, emisor, ...estadoHeredado
@@ -709,6 +727,7 @@
     };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function generarFinTurno(estado: IVectorEstado, parametros: IParameters): IVectorEstado {
     const {
       id, reloj, evento, emisor, ...estadoHeredado
@@ -1007,6 +1026,7 @@
     return vector;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   function generarAbandonoPedido(estado: IVectorEstado, parametros: IParameters) {
     const {
       id, reloj, evento, emisor, ...estadoHeredado
@@ -1407,8 +1427,6 @@
         r + 1, resultadosSimulación, resultadosReplica,
       );
 
-      // console.log(resultadosReplica);
-
       if (guardarReplica) {
         const resultadosTurnoMañana = calcularResultadosTurno(vectorFinTurnoMañana);
         const resultadosTurnoNoche = calcularResultadosTurno(vectorFinTurnoNoche);
@@ -1422,8 +1440,6 @@
 
       r++;
     }
-
-    // console.log(resultadosSimulación);
 
     return {
       replicas,
@@ -1462,9 +1478,9 @@
   } %`;
 
   function useSimulation(props: { parameters: IParameters }, emit: any) {
-    const state = reactive({
-      iteraciones: 100,
-      condicionMuestreo: '!(n % 50)',
+    const state: any = reactive({
+      iteraciones: 1000000,
+      condicionMuestreo: '!(n % 1000)',
 
       columnas: [
         {
@@ -1694,13 +1710,17 @@
         'reloj', 'evento',
       ],
 
+      resultadosReplicas: [],
       replicas: [] as TReplica[],
-      replica: [] as TReplica, // computed
+      replica: computed(
+        () => (state.replicas.length ? state.replicas[state.r] : [] as TReplica),
+      ),
+      r: 0,
       loading: false,
 
       onSubmit: () => {
         const configuration = {
-          runs: state.iteraciones,
+          runs: Math.ceil(state.iteraciones / 250),
           // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
           filter: new Function(
             'n', `return Boolean(${state.condicionMuestreo});`,
@@ -1708,7 +1728,6 @@
         };
 
         state.replicas = [];
-        state.replica = [];
         state.loading = true;
 
         const { replicas, resultadosReplicas, resultados } = executeSimulation(props.parameters, configuration);
@@ -1717,9 +1736,19 @@
         emit('finish', resultados);
 
         state.loading = false;
+        state.r = 0;
         state.replicas = replicas;
-        // eslint-disable-next-line prefer-destructuring
-        state.replica = replicas[0];
+        state.resultadosReplicas = resultadosReplicas;
+      },
+
+      onPrev: () => {
+        state.r = (state.r - 1) % state.replicas.length;
+        emit('finishRun', state.resultadosReplicas[state.r]);
+      },
+
+      onNext: () => {
+        state.r = (state.r + 1) % state.replicas.length;
+        emit('finishRun', state.resultadosReplicas[state.r]);
       },
     });
 
